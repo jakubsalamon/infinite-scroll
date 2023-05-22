@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import {
   Paper,
@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@mui/material";
 import { rows } from "./mockedData";
+import { RowItem } from "./RowItem";
 
 function App() {
   const [rowsChunk, setRowsChunk] = useState<
@@ -22,9 +23,30 @@ function App() {
     }[]
   >([]);
 
+  const rowRef = useRef<IntersectionObserver>();
+
   useEffect(() => {
-    setRowsChunk([...rows.slice(0, 20)]);
+    setRowsChunk(rows);
   }, []);
+
+  const intersectedElementRef = (nodeItem: HTMLDivElement) => {
+    if (rowRef.current) {
+      rowRef.current.disconnect();
+    }
+
+    rowRef.current = new IntersectionObserver(
+      (entries: IntersectionObserverEntry[]) => {
+        if (entries[0].isIntersecting) {
+          console.log("ref element is on the screen");
+          setRowsChunk((prev) => [...prev, ...rows]);
+        }
+      }
+    );
+
+    if (nodeItem) {
+      rowRef.current.observe(nodeItem);
+    }
+  };
 
   return (
     <article className="container">
@@ -40,20 +62,29 @@ function App() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {rowsChunk.map((row) => (
-              <TableRow
-                key={row.name}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-              >
-                <TableCell component="th" scope="row">
-                  {row.name}
-                </TableCell>
-                <TableCell align="right">{row.calories}</TableCell>
-                <TableCell align="right">{row.fat}</TableCell>
-                <TableCell align="right">{row.carbs}</TableCell>
-                <TableCell align="right">{row.protein}</TableCell>
-              </TableRow>
-            ))}
+            {rowsChunk.map((row, index) => {
+              return index === rowsChunk.length - 4 ? (
+                <div key={index} ref={intersectedElementRef}>
+                  <RowItem
+                    name={row.name}
+                    calories={row.calories}
+                    fat={row.fat}
+                    carbs={row.carbs}
+                    protein={row.protein}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <RowItem
+                    name={row.name}
+                    calories={row.calories}
+                    fat={row.fat}
+                    carbs={row.carbs}
+                    protein={row.protein}
+                  />
+                </div>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
